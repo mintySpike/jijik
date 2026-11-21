@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Google Chrome — Ніч перед Різдвом (Dark Violet)</title>
+  <style>
+    :root {
+      --bg-deep: #090412;
+      --bg-night-top: #180a2e;
+      --bg-window: rgba(22, 13, 38, 0.92);
+      --bg-toolbar: #22143b;
+      --bg-tab: #1c1030;
+      --accent-neon: #b84dff;
+      --accent-glow: rgba(184, 77, 255, 0.65);
+      --accent-secondary: #6e3aff;
+      --moon-gold: #ffe98a;
+      --moon-glow: rgba(255, 226, 112, 0.55);
+      --text-main: #f2e9ff;
+      --text-muted: #a48bc9;
+      --border-subtle: rgba(184, 77, 255, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 75% 18%, #2b1352 0%, var(--bg-night-top) 45%, var(--bg-deep) 100%);
+      color: var(--text-main);
+      overflow: hidden;
+      perspective: 1400px;
+      user-select: none;
+      cursor: crosshair;
+    }
+
+    /* Полотно для снігу та летючих сніжок */
+    #snowCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Зоряне небо на фоні */
+    .stars-layer {
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(2px 2px at 28% 8%, rgba(230, 190, 255, 0.9), transparent),
+        radial-gradient(1.2px 1.2px at 46% 22%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(2px 2px at 64% 12%, rgba(255, 240, 180, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 88% 34%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(1.2px 1.2px at 8% 45%, rgba(200, 160, 255, 0.6), transparent),
+        radial-gradient(1.8px 1.8px at 93% 62%, rgba(255, 255, 255, 0.7), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Засніжені пагорби знизу */
+    .snow-ground {
+      position: fixed;
+      bottom: -24px;
+      left: -5%;
+      width: 110%;
+      height: 95px;
+      background: linear-gradient(180deg, #e7dcff 0%, #9b7fd1 55%, #371e63 100%);
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+      box-shadow: 0 -10px 35px rgba(184, 77, 255, 0.35);
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    /* Підказка у верхньому лівому куті */
+    .hint-badge {
+      position: fixed;
+      top: 16px;
+      left: 18px;
+      z-index: 35;
+      background: rgba(24, 12, 46, 0.82);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(184, 77, 255, 0.25);
+    }
+
+    .score-pill {
+      background: var(--accent-neon);
+      color: #120624;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    /* Сцена з місяцем і чортом */
+    .moon-stage {
+      position: fixed;
+      top: 26px;
+      right: 48px;
+      width: 190px;
+      height: 190px;
+      z-index: 25;
+      cursor: pointer;
+    }
+
+    .moon-crescent {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 26px var(--moon-glow));
+      transition: transform 0.3s ease;
+    }
+
+    .moon-stage:hover .moon-crescent {
+      transform: scale(1.04);
+    }
+
+    /* Чортик, який гойдається на нижньому розі місяця */
+    .devil-swinger {
+      position: absolute;
+      top: 98px;
+      left: 62px;
+      width: 84px;
+      height: 96px;
+      transform-origin: 42px 14px;
+      animation: devilSwing 2.6s ease-in-out infinite alternate;
+      transition: opacity 0.2s ease;
+    }
+
+    .devil-swinger.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes devilSwing {
+      0% {
+        transform: rotate(-18deg) translateY(0px);
+      }
+      100% {
+        transform: rotate(22deg) translateY(-3px);
+      }
+    }
+
+    /* Чортик, який впав у сніг і мекає */
+    .fallen-devil {
+      position: fixed;
+      bottom: 34px;
+      right: 95px;
+      width: 110px;
+      height: 110px;
+      z-index: 30;
+      opacity: 0;
+      transform: translateY(-350px) rotate(-180deg) scale(0.85);
+      pointer-events: none;
+      transition: transform 0.65s cubic-bezier(0.22, 1.28, 0.48, 1), opacity 0.25s ease;
+      cursor: pointer;
+    }
+
+    .fallen-devil.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) rotate(0deg) scale(1);
+    }
+
+    .fallen-devil.bleating {
+      animation: bleatShake 0.45s ease-in-out infinite;
+    }
+
+    @keyframes bleatShake {
+      0%, 100% { transform: translateY(0) rotate(-3deg); }
+      50% { transform: translateY(-5px) rotate(4deg); }
+    }
+
+    /* Хмарка тексту "Ме-е-е!" */
+    .bleat-bubble {
+      position: absolute;
+      top: -46px;
+      left: -38px;
+      background: #fff8ff;
+      color: #240c47;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 6px 14px;
+      border-radius: 18px;
+      border: 2px solid var(--accent-neon);
+      box-shadow: 0 6px 18px rgba(184, 77, 255, 0.55);
+      white-space: nowrap;
+      animation: bubblePop 0.5s ease-in-out infinite alternate;
+    }
+
+    .bleat-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      right: 22px;
+      border-width: 8px 8px 0;
+      border-style: solid;
+      border-color: #fff8ff transparent transparent;
+    }
+
+    @keyframes bubblePop {
+      from { transform: scale(0.95) rotate(-2deg); }
+      to { transform: scale(1.08) rotate(3deg); }
+    }
+
+    /* Головне вікно 3D Chrome */
+    .chrome-3d-window {
+      position: relative;
+      z-index: 10;
+      width: 880px;
+      max-width: 92vw;
+      height: 530px;
+      background: var(--bg-window);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.82),
+        0 0 42px rgba(138, 43, 226, 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.16);
+      display: flex;
+      flex-direction: column;
+      transform-style: preserve-3d;
+      transform: rotateX(6deg) rotateY(-4deg);
+      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.6s ease;
+    }
+
+    .chrome-3d-window:hover {
+      transform: rotateX(2deg) rotateY(0deg);
+      box-shadow:
+        0 35px 80px rgba(0, 0, 0, 0.88),
+        0 0 55px rgba(184, 77, 255, 0.34),
+        inset 0 1px 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .chrome-header {
+      display: flex;
+      align-items: flex-end;
+      padding: 14px 16px 0 16px;
+      background: rgba(17, 9, 31, 0.95);
+      border-radius: 16px 16px 0 0;
+      gap: 14px;
+      transform-style: preserve-3d;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      padding-bottom: 14px;
+    }
+
+    .control-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+    .control-dot.close { background: #ff4d88; box-shadow: 0 0 8px rgba(255, 77, 136, 0.5); }
+    .control-dot.minimize { background: #c56cf0; box-shadow: 0 0 8px rgba(197, 108, 240, 0.5); }
+    .control-dot.maximize { background: #7d5fff; box-shadow: 0 0 8px rgba(125, 95, 255, 0.5); }
+    .control-dot:hover { transform: scale(1.25); }
+
+    .tabs-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      flex: 1;
+      perspective: 800px;
+      transform-style: preserve-3d;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Вкладки з 3D-нахилом, збільшенням і підсвічуванням при наведенні */
+    .tab {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 145px;
+      max-width: 205px;
+      padding: 10px 14px;
+      background: var(--bg-tab);
+      color: var(--text-muted);
+      border-radius: 10px 10px 0 0;
+      border: 1px solid rgba(184, 77, 255, 0.16);
+      border-bottom: none;
+      cursor: pointer;
+      transform-origin: bottom center;
+      transform-style: preserve-3d;
+      transition:
+        transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        background 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.35s ease,
+        border-color 0.3s ease;
+    }
+
+    .tab.active {
+      background: var(--bg-toolbar);
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+      box-shadow: 0 -4px 15px rgba(184, 77, 255, 0.22);
+      z-index: 2;
+    }
+
+    .tab:hover {
+      transform: translateY(-6px) translateZ(28px) rotateX(14deg) rotateY(-8deg) scale(1.08);
+      background: linear-gradient(135deg, #3c1e70 0%, #241242 100%);
+      color: #ffffff;
+      border-color: var(--accent-neon);
+      box-shadow:
+        0 12px 25px rgba(0, 0, 0, 0.6),
+        0 0 22px var(--accent-glow),
+        inset 0 0 12px rgba(184, 77, 255, 0.45);
+      z-index: 10;
+    }
+
+    .tab-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .tab-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--accent-neon), var(--accent-secondary));
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .tab-title {
+      font-size: 13px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.65;
+      padding: 2px 5px;
+      border-radius: 4px;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .tab-close:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .new-tab-btn {
+      width: 30px;
+      height: 30px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+    }
+
+    .new-tab-btn:hover {
+      background: rgba(184, 77, 255, 0.22);
+      color: #fff;
+      border-color: var(--accent-neon);
+      box-shadow: 0 0 12px var(--accent-glow);
+      transform: scale(1.1);
+    }
+
+    .chrome-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-toolbar);
+      border-bottom: 1px solid var(--border-subtle);
+      transform: translateZ(10px);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background: rgba(184, 77, 255, 0.22);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(184, 77, 255, 0.35);
+    }
+
+    .omnibox {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #130924;
+      border: 1px solid rgba(184, 77, 255, 0.28);
+      border-radius: 20px;
+      padding: 6px 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .omnibox:focus-within {
+      border-color: var(--accent-neon);
+      box-shadow: 0 0 16px rgba(184, 77, 255, 0.45);
+    }
+
+    .lock-icon {
+      color: var(--accent-neon);
+      font-size: 12px;
+    }
+
+    .omnibox input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 13.5px;
+    }
+
+    .chrome-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at center, rgba(35, 19, 64, 0.85) 0%, rgba(18, 10, 34, 0.95) 100%);
+      border-radius: 0 0 16px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chrome-logo-3d {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #ffffff 15%, #d68fff 55%, #8a2be2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 8px 20px rgba(184, 77, 255, 0.45));
+      transform: translateZ(20px);
+    }
+
+    .center-search {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      align-items: center;
+      background: rgba(17, 9, 31, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 26px;
+      padding: 11px 20px;
+      margin-bottom: 26px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .center-search:hover,
+    .center-search:focus-within {
+      border-color: var(--accent-neon);
+      box-shadow: 0 0 25px rgba(184, 77, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .center-search input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 14.5px;
+    }
+
+    .shortcuts {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .shortcut-card {
+      width: 92px;
+      padding: 12px 8px;
+      border-radius: 12px;
+      background: rgba(34, 20, 59, 0.65);
+      border: 1px solid rgba(184, 77, 255, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .shortcut-card:hover {
+      transform: translateY(-6px) scale(1.06);
+      background: rgba(58, 32, 102, 0.88);
+      border-color: var(--accent-neon);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 18px var(--accent-glow);
+    }
+
+    .shortcut-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4b238c, #26114a);
+      border: 1px solid var(--accent-neon);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      box-shadow: inset 0 0 10px rgba(184, 77, 255, 0.4);
+    }
+
+    .shortcut-name {
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    @media (max-width: 768px) {
+      .moon-stage {
+        top: 56px;
+        right: 12px;
+        width: 140px;
+        height: 140px;
+      }
+      .devil-swinger {
+        top: 68px;
+        left: 44px;
+        width: 66px;
+        height: 76px;
+      }
+      .chrome-3d-window {
+        height: 480px;
+        margin-top: 40px;
+      }
+      .chrome-logo-3d {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stars-layer"></div>
+  <canvas id="snowCanvas"></canvas>
+
+  <!-- Підказка користувачу -->
+  <div class="hint-badge">
+    <span>❄️ Клікни по чортику на місяці, щоб кинути сніжку!</span>
+    <span class="score-pill" id="hitCounter">Влучань: 0</span>
+  </div>
+
+  <!-- Місяць і чортик, що гойдається -->
+  <div class="moon-stage" id="moonStage" title="Кинути сніжку в чорта!">
+    <svg class="moon-crescent" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="moonGrad" cx="35%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#fffbe0" />
+          <stop offset="55%" stop-color="#ffd966" />
+          <stop offset="100%" stop-color="#e09f24" />
+        </radialGradient>
+      </defs>
+      <!-- Півмісяць -->
+      <path d="M 135 20 A 82 82 0 1 0 152 168 A 66 66 0 1 1 135 20 Z" fill="url(#moonGrad)" />
+      <!-- Кратери -->
+      <circle cx="66" cy="76" r="7" fill="rgba(196, 130, 18, 0.25)" />
+      <circle cx="54" cy="112" r="10" fill="rgba(196, 130, 18, 0.22)" />
+      <circle cx="82" cy="144" r="6" fill="rgba(196, 130, 18, 0.25)" />
+    </svg>
+
+    <!-- Чортик на місяці -->
+    <div class="devil-swinger" id="devilSwinger">
+      <svg viewBox="0 0 100 115" xmlns="http://www.w3.org/2000/svg">
+        <!-- Хвіст з пензликом -->
+        <path d="M 62 72 Q 92 64 88 42 Q 86 32 78 36" fill="none" stroke="#1b0d2e" stroke-width="4.5" stroke-linecap="round" />
+        <polygon points="75,30 86,33 78,43" fill="#ff3b7f" />
+        <!-- Копитця та ніжки -->
+        <path d="M 38 78 L 32 102" stroke="#1b0d2e" stroke-width="6" stroke-linecap="round" />
+        <path d="M 54 78 L 62 102" stroke="#1b0d2e" stroke-width="6" stroke-linecap="round" />
+        <ellipse cx="30" cy="105" rx="6" ry="3.5" fill="#4b247a" />
+        <ellipse cx="64" cy="105" rx="6" ry="3.5" fill="#4b247a" />
+        <!-- Тулуб -->
+        <ellipse cx="46" cy="64" rx="18" ry="21" fill="#23113b" stroke="#b84dff" stroke-width="1.5" />
+        <!-- Ручки тримаються за місяць -->
+        <path d="M 34 52 Q 24 30 38 16" fill="none" stroke="#23113b" stroke-width="6" stroke-linecap="round" />
+        <path d="M 56 52 Q 62 30 48 16" fill="none" stroke="#23113b" stroke-width="6" stroke-linecap="round" />
+        <!-- Голова та п'ятачок -->
+        <circle cx="46" cy="36" r="15" fill="#2b1547" stroke="#b84dff" stroke-width="1.5" />
+        <!-- Ріжки -->
+        <path d="M 35 24 Q 28 10 34 6 Q 40 12 40 22 Z" fill="#ff4d88" />
+        <path d="M 57 24 Q 64 10 58 6 Q 52 12 52 22 Z" fill="#ff4d88" />
+        <!-- Очі -->
+        <circle cx="41" cy="34" r="2.6" fill="#ffe98a" />
+        <circle cx="51" cy="34" r="2.6" fill="#ffe98a" />
+        <!-- П'ятачок -->
+        <ellipse cx="46" cy="40" rx="5.5" ry="3.8" fill="#ff7aa8" />
+        <circle cx="44.2" cy="40" r="1.1" fill="#2b1547" />
+        <circle cx="47.8" cy="40" r="1.1" fill="#2b1547" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Чортик, що впав у сніг -->
+  <div class="fallen-devil" id="fallenDevil" title="Натисни, щоб він знову заліз на місяць">
+    <div class="bleat-bubble" id="bleatBubble">Ме-е-е! 🐐</div>
+    <svg viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg">
+      <!-- Зірочки над головою -->
+      <text x="20" y="20" font-size="14" fill="#ffe98a">✦</text>
+      <text x="84" y="18" font-size="13" fill="#d580ff">✦</text>
+      <!-- Хвіст -->
+      <path d="M 78 82 Q 108 78 105 58" fill="none" stroke="#1b0d2e" stroke-width="4.5" stroke-linecap="round" />
+      <polygon points="100,52 111,56 103,65" fill="#ff3b7f" />
+      <!-- Тулуб сидячи в снігу -->
+      <ellipse cx="58" cy="76" rx="22" ry="18" fill="#23113b" stroke="#b84dff" stroke-width="1.8" />
+      <!-- Лапки вперед -->
+      <ellipse cx="36" cy="92" rx="10" ry="6" fill="#2b1547" stroke="#b84dff" stroke-width="1.2" />
+      <ellipse cx="78" cy="92" rx="10" ry="6" fill="#2b1547" stroke="#b84dff" stroke-width="1.2" />
+      <!-- Голова -->
+      <circle cx="58" cy="48" r="17" fill="#2b1547" stroke="#b84dff" stroke-width="1.8" />
+      <!-- Ріжки -->
+      <path d="M 45 34 Q 36 18 43 13 Q 50 20 50 32 Z" fill="#ff4d88" />
+      <path d="M 71 34 Q 80 18 73 13 Q 66 20 66 32 Z" fill="#ff4d88" />
+      <!-- Запаморочені очі (хрестики) -->
+      <text x="48" y="47" font-size="11" font-weight="bold" fill="#ffe98a">×</text>
+      <text x="62" y="47" font-size="11" font-weight="bold" fill="#ffe98a">×</text>
+      <!-- П'ятачок і відкритий рот для мекання -->
+      <ellipse cx="58" cy="53" rx="6" ry="4" fill="#ff7aa8" />
+      <ellipse cx="58" cy="60" rx="5" ry="3.5" fill="#ff3b7f" />
+    </svg>
+  </div>
+
+  <!-- Засніжена земля -->
+  <div class="snow-ground"></div>
+
+  <!-- 3D Вікно Google Chrome -->
+  <div class="chrome-3d-window" id="chromeWindow">
+    <div class="chrome-header">
+      <div class="window-controls">
+        <span class="control-dot close" title="Закрити"></span>
+        <span class="control-dot minimize" title="Згорнути"></span>
+        <span class="control-dot maximize" title="Розгорнути"></span>
+      </div>
+
+      <div class="tabs-container" id="tabsContainer">
+        <div class="tab active" data-url="chrome://newtab" data-title="Google Chrome 3D">
+          <div class="tab-info">
+            <span class="tab-icon"></span>
+            <span class="tab-title">Нова вкладка</span>
+          </div>
+          <span class="tab-close">×</span>
+        </div>
+
+        <div class="tab" data-url="https://github.com" data-title="GitHub · Dark Violet">
+          <div class="tab-info">
+            <span class="tab-icon"></span>
+            <span class="tab-title">GitHub · Dark Violet</span>
+          </div>
+          <span class="tab-close">×</span>
+        </div>
+
+        <div class="tab" data-url="https://ukrlib.com.ua/gogol" data-title="Ніч перед Різдвом">
+          <div class="tab-info">
+            <span class="tab-icon"></span>
+            <span class="tab-title">Ніч перед Різдвом</span>
+          </div>
+          <span class="tab-close">×</span>
+        </div>
+
+        <div class="tab" data-url="https://developer.mozilla.org" data-title="CSS 3D & WebAudio">
+          <div class="tab-info">
+            <span class="tab-icon"></span>
+            <span class="tab-title">CSS 3D & WebAudio</span>
+          </div>
+          <span class="tab-close">×</span>
+        </div>
+      </div>
+
+      <button class="new-tab-btn" id="addTabBtn" title="Нова вкладка">+</button>
+    </div>
+
+    <div class="chrome-toolbar">
+      <div class="nav-buttons">
+        <button class="nav-btn" title="Назад">←</button>
+        <button class="nav-btn" title="Вперед">→</button>
+        <button class="nav-btn" title="Оновити">↻</button>
+      </div>
+      <div class="omnibox">
+        <span class="lock-icon">🔒</span>
+        <input type="text" id="urlInput" value="chrome://newtab" spellcheck="false" />
+      </div>
+    </div>
+
+    <div class="chrome-viewport">
+      <div class="chrome-logo-3d" id="pageHeading">Google Chrome 3D</div>
+      <div class="center-search">
+        <input type="text" placeholder="Пошук у зимовій мережі або введіть URL..." />
+      </div>
+
+      <div class="shortcuts">
+        <div class="shortcut-card" data-target="https://github.com">
+          <div class="shortcut-circle">GH</div>
+          <span class="shortcut-name">GitHub</span>
+        </div>
+        <div class="shortcut-card" data-target="https://youtube.com">
+          <div class="shortcut-circle">YT</div>
+          <span class="shortcut-name">YouTube</span>
+        </div>
+        <div class="shortcut-card" data-target="https://codepen.io">
+          <div class="shortcut-circle">CP</div>
+          <span class="shortcut-name">CodePen</span>
+        </div>
+        <div class="shortcut-card" data-target="https://figma.com">
+          <div class="shortcut-circle">FG</div>
+          <span class="shortcut-name">Figma</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================
+       1. ЛОГІКА ВКЛАДОК 3D CHROME
+       ============================ */
+    const tabsContainer = document.getElementById('tabsContainer');
+    const urlInput = document.getElementById('urlInput');
+    const pageHeading = document.getElementById('pageHeading');
+    const addTabBtn = document.getElementById('addTabBtn');
+
+    function activateTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      urlInput.value = tab.dataset.url || 'chrome://newtab';
+      pageHeading.textContent = tab.dataset.title || 'Google Chrome 3D';
+    }
+
+    tabsContainer.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const closeBtn = e.target.closest('.tab-close');
+      const tab = e.target.closest('.tab');
+
+      if (closeBtn && tab) {
+        const isActive = tab.classList.contains('active');
+        tab.remove();
+        if (isActive) {
+          const remaining = document.querySelectorAll('.tab');
+          if (remaining.length > 0) activateTab(remaining[remaining.length - 1]);
+        }
+        return;
+      }
+
+      if (tab) activateTab(tab);
+    });
+
+    addTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const count = document.querySelectorAll('.tab').length + 1;
+      const newTab = document.createElement('div');
+      newTab.className = 'tab';
+      newTab.dataset.url = `chrome://winter-tab-${count}`;
+      newTab.dataset.title = `Зимова вкладка #${count}`;
+      newTab.innerHTML = `
+        <div class="tab-info">
+          <span class="tab-icon"></span>
+          <span class="tab-title">Зимова вкладка #${count}</span>
+        </div>
+        <span class="tab-close">×</span>
+      `;
+      tabsContainer.appendChild(newTab);
+      activateTab(newTab);
+    });
+
+    document.querySelectorAll('.shortcut-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetUrl = card.dataset.target;
+        const name = card.querySelector('.shortcut-name').textContent;
+        urlInput.value = targetUrl;
+        pageHeading.textContent = name;
+        const activeTab = document.querySelector('.tab.active');
+        if (activeTab) {
+          activeTab.dataset.url = targetUrl;
+          activeTab.dataset.title = name;
+          activeTab.querySelector('.tab-title').textContent = name;
+        }
+      });
+    });
+
+    /* ============================
+       2. СИНТЕЗ ЗВУКУ МЕКАННЯ (Web Audio API)
+       ============================ */
+    let audioCtx = null;
+
+    function playDevilBleat() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const now = audioCtx.currentTime;
+        const duration = 1.15;
+
+        // Основний тон голосу чортика/козлика
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        osc1.type = 'sawtooth';
+        osc2.type = 'triangle';
+
+        // Вібрато (характерне тремтіння "ме-е-е")
+        const vibrato = audioCtx.createOscillator();
+        const vibratoGain = audioCtx.createGain();
+        vibrato.frequency.setValueAtTime(14, now);
+        vibratoGain.gain.setValueAtTime(16, now);
+        vibrato.connect(vibratoGain);
+
+        osc1.frequency.setValueAtTime(245, now);
+        osc1.frequency.exponentialRampToValueAtTime(215, now + 0.35);
+        osc1.frequency.exponentialRampToValueAtTime(185, now + duration);
+
+        osc2.frequency.setValueAtTime(490, now);
+        osc2.frequency.exponentialRampToValueAtTime(370, now + duration);
+
+        vibratoGain.connect(osc1.frequency);
+        vibratoGain.connect(osc2.frequency);
+
+        // Формантний смуговий фільтр для ефекту "Ме-е-е"
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(850, now);
+        filter.frequency.linearRampToValueAtTime(1150, now + 0.25);
+        filter.frequency.linearRampToValueAtTime(780, now + duration);
+        filter.Q.setValueAtTime(3.2, now);
+
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.001, now);
+        masterGain.gain.linearRampToValueAtTime(0.28, now + 0.08);
+        masterGain.gain.setValueAtTime(0.24, now + 0.75);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        vibrato.start(now);
+
+        osc1.stop(now + duration);
+        osc2.stop(now + duration);
+        vibrato.stop(now + duration);
+      } catch (err) {
+        console.warn('Audio playback skipped:', err);
+      }
+    }
+
+    function playThrowWhoosh() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } catch (e) {}
+    }
+
+    /* ============================
+       3. СНІГОПАД ТА КИДАННЯ СНІЖОК
+       ============================ */
+    const canvas = document.getElementById('snowCanvas');
+    const ctx = canvas.getContext('2d');
+    const devilSwinger = document.getElementById('devilSwinger');
+    const fallenDevil = document.getElementById('fallenDevil');
+    const bleatBubble = document.getElementById('bleatBubble');
+    const hitCounterEl = document.getElementById('hitCounter');
+
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    // Сніжинки
+    const snowflakes = Array.from({ length: 135 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      r: Math.random() * 2.8 + 1.1,
+      speedY: Math.random() * 1.4 + 0.6,
+      drift: Math.random() * 0.8 - 0.4,
+      phase: Math.random() * Math.PI * 2,
+      alpha: Math.random() * 0.6 + 0.35
+    }));
+
+    // Активні сніжки, які летять
+    const snowballs = [];
+    // Частинки розбитої сніжки
+    const splashParticles = [];
+
+    let isDevilFallen = false;
+    let hits = 0;
+    let recoverTimer = null;
+    let bleatInterval = null;
+
+    const bleatPhrases = ['Ме-е-е! 🐐', 'Ме-е-е! Ой, холодно!', 'Ме-е-е-е! ❄️', 'Бе-е-ме-е! 😵'];
+
+    function triggerDevilFall() {
+      if (isDevilFallen) return;
+      isDevilFallen = true;
+      hits += 1;
+      hitCounterEl.textContent = `Влучань: ${hits}`;
+
+      devilSwinger.classList.add('hidden');
+      fallenDevil.classList.add('active', 'bleating');
+      bleatBubble.textContent = bleatPhrases[hits % bleatPhrases.length];
+
+      playDevilBleat();
+      bleatInterval = setInterval(() => {
+        if (isDevilFallen) {
+          bleatBubble.textContent = bleatPhrases[Math.floor(Math.random() * bleatPhrases.length)];
+          playDevilBleat();
+        }
+      }, 1700);
+
+      clearTimeout(recoverTimer);
+      recoverTimer = setTimeout(returnDevilToMoon, 5200);
+    }
+
+    function returnDevilToMoon() {
+      isDevilFallen = false;
+      clearInterval(bleatInterval);
+      fallenDevil.classList.remove('active', 'bleating');
+      setTimeout(() => {
+        if (!isDevilFallen) devilSwinger.classList.remove('hidden');
+      }, 300);
+    }
+
+    // Якщо клікнути по чортику внизу — він швидше повернеться на місяць
+    fallenDevil.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playDevilBleat();
+      setTimeout(returnDevilToMoon, 400);
+    });
+
+    function createSnowSplash(x, y, count = 18) {
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+        const speed = Math.random() * 4.5 + 1.5;
+        splashParticles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          r: Math.random() * 3.5 + 1.5,
+          life: 1
+        });
+      }
+    }
+
+    function throwSnowballAt(targetX, targetY) {
+      playThrowWhoosh();
+      const startX = width * 0.5 + (Math.random() * 140 - 70);
+      const startY = height - 20;
+
+      snowballs.push({
+        startX,
+        startY,
+        x: startX,
+        y: startY,
+        targetX,
+        targetY,
+        progress: 0,
+        speed: 0.045
+      });
+    }
+
+    // Клік по екрану (окрім інтерактивних елементів браузера) кидає сніжку
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('input, button, .tab, .shortcut-card')) return;
+      throwSnowballAt(e.clientX, e.clientY);
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Малюємо падаючий сніг
+      for (const flake of snowflakes) {
+        flake.phase += 0.02;
+        flake.y += flake.speedY;
+        flake.x += flake.drift + Math.sin(flake.phase) * 0.35;
+
+        if (flake.y > height) {
+          flake.y = -6;
+          flake.x = Math.random() * width;
+        }
+        if (flake.x > width) flake.x = 0;
+        if (flake.x < 0) flake.x = width;
+
+        ctx.beginPath();
+        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(243, 232, 255, ${flake.alpha})`;
+        ctx.fill();
+      }
+
+      // 2. Малюємо сніжки в польоті
+      const devilRect = devilSwinger.getBoundingClientRect();
+      const devilCenterX = devilRect.left + devilRect.width / 2;
+      const devilCenterY = devilRect.top + devilRect.height / 2;
+
+      for (let i = snowballs.length - 1; i >= 0; i--) {
+        const sb = snowballs[i];
+        sb.progress += sb.speed;
+
+        const t = sb.progress;
+        // Параболічна дуга польоту сніжки
+        const arcLift = Math.sin(t * Math.PI) * 110;
+        sb.x = sb.startX + (sb.targetX - sb.startX) * t;
+        sb.y = sb.startY + (sb.targetY - sb.startY) * t - arcLift;
+
+        // Зменшення сніжки в перспективі (3D-глибина)
+        const radius = Math.max(5, 16 * (1 - t * 0.55));
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sb.x, sb.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#d580ff';
+        ctx.shadowBlur = 16;
+        ctx.fill();
+        ctx.restore();
+
+        // Перевірка влучання в чортика на місяці під час польоту або в кінці
+        const distToDevil = Math.hypot(sb.x - devilCenterX, sb.y - devilCenterY);
+        if (!isDevilFallen && distToDevil < 52 && t > 0.55) {
+          createSnowSplash(devilCenterX, devilCenterY, 26);
+          triggerDevilFall();
+          snowballs.splice(i, 1);
+          continue;
+        }
+
+        if (sb.progress >= 1) {
+          createSnowSplash(sb.targetX, sb.targetY, 14);
+          snowballs.splice(i, 1);
+        }
+      }
+
+      // 3. Малюємо бризки снігу при ударі
+      for (let i = splashParticles.length - 1; i >= 0; i--) {
+        const p = splashParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.life -= 0.032;
+
+        if (p.life <= 0) {
+          splashParticles.splice(i, 1);
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.life})`;
+        ctx.fill();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    window.onload = () => {
+      animate();
+    };
+  </script>
+</body>
+</html>
