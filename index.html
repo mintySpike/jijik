@@ -109,6 +109,87 @@
       font-size: 12px;
     }
 
+    .varenyk-pill {
+      background: linear-gradient(135deg, #ffe98a, #ffb84d);
+      color: #1c0933;
+      font-weight: 800;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      box-shadow: 0 0 10px rgba(255, 217, 102, 0.45);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .varenyk-pill.bump {
+      transform: scale(1.22);
+    }
+
+    /* Літаючі вареники, які можна ловити */
+    .varenyk-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 22;
+      overflow: hidden;
+    }
+
+    .flying-varenyk {
+      position: absolute;
+      width: 56px;
+      height: 38px;
+      pointer-events: auto;
+      cursor: pointer;
+      filter: drop-shadow(0 6px 14px rgba(184, 77, 255, 0.45));
+      transition: filter 0.2s ease;
+      will-change: transform;
+    }
+
+    .flying-varenyk:hover {
+      filter: drop-shadow(0 0 16px #ffe98a) brightness(1.12);
+    }
+
+    .flying-varenyk.caught {
+      pointer-events: none;
+      animation: varenykCatchPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.45) forwards;
+    }
+
+    @keyframes varenykCatchPop {
+      0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.55) rotate(18deg);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0.1) rotate(45deg) translateY(-40px);
+        opacity: 0;
+      }
+    }
+
+    .catch-floating-text {
+      position: fixed;
+      z-index: 40;
+      pointer-events: none;
+      font-weight: 800;
+      font-size: 15px;
+      color: #ffe98a;
+      text-shadow: 0 2px 10px rgba(184, 77, 255, 0.9);
+      animation: floatScoreUp 0.85s ease-out forwards;
+    }
+
+    @keyframes floatScoreUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.9);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-46px) scale(1.2);
+      }
+    }
+
     /* Сцена з місяцем і чортом */
     .moon-stage {
       position: fixed;
@@ -375,6 +456,47 @@
       background: rgba(255, 255, 255, 0.16);
     }
 
+    /* Анімація падіння вкладки при закритті (×) */
+    .tab.falling {
+      pointer-events: none;
+      z-index: 50;
+      transform-origin: bottom left;
+      animation: tabFallGravity 0.68s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+    }
+
+    @keyframes tabFallGravity {
+      0% {
+        transform: translateY(0) translateZ(15px) rotateZ(0deg) rotateX(0deg);
+        opacity: 1;
+        box-shadow: 0 10px 25px rgba(184, 77, 255, 0.45);
+      }
+      28% {
+        transform: translateY(22px) translateZ(35px) rotateZ(14deg) rotateX(22deg);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateY(380px) translateZ(60px) rotateZ(68deg) rotateX(55deg);
+        opacity: 0;
+      }
+    }
+
+    /* Анімація появи нової вкладки з ефектом розгортання аркуша */
+    .tab.flip-in {
+      transform-origin: left center;
+      animation: tabSheetAppear 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes tabSheetAppear {
+      0% {
+        opacity: 0;
+        transform: perspective(600px) rotateY(-88deg) scale(0.85);
+      }
+      100% {
+        opacity: 1;
+        transform: perspective(600px) rotateY(0deg) scale(1);
+      }
+    }
+
     .new-tab-btn {
       width: 30px;
       height: 30px;
@@ -477,6 +599,55 @@
       border-radius: 0 0 16px 16px;
       position: relative;
       overflow: hidden;
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    /* Аркуш для 3D-перегортання сторінки при створенні нової вкладки */
+    .page-flip-sheet {
+      position: absolute;
+      inset: 0;
+      border-radius: 0 0 16px 16px;
+      background: linear-gradient(
+        115deg,
+        #2b1652 0%,
+        #4a238a 38%,
+        #b84dff 50%,
+        #231142 65%,
+        #160a2b 100%
+      );
+      box-shadow: -18px 0 40px rgba(0, 0, 0, 0.75), inset 0 0 35px rgba(255, 255, 255, 0.25);
+      transform-origin: left center;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 30;
+    }
+
+    .page-flip-sheet::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.32) 0%, transparent 25%, rgba(0, 0, 0, 0.55) 100%);
+      border-radius: inherit;
+    }
+
+    .page-flip-sheet.turning {
+      animation: pageSheetFlip 0.68s cubic-bezier(0.32, 0.04, 0.22, 1) forwards;
+    }
+
+    @keyframes pageSheetFlip {
+      0% {
+        opacity: 0.96;
+        transform: rotateY(0deg) skewY(0deg);
+      }
+      45% {
+        opacity: 1;
+        transform: rotateY(-95deg) skewY(-4deg) scaleX(1.04);
+      }
+      100% {
+        opacity: 0;
+        transform: rotateY(-180deg) skewY(0deg);
+      }
     }
 
     .chrome-logo-3d {
@@ -596,11 +767,13 @@
 
   <div class="stars-layer"></div>
   <canvas id="snowCanvas"></canvas>
+  <div class="varenyk-layer" id="varenykLayer"></div>
 
   <!-- Підказка користувачу -->
   <div class="hint-badge">
-    <span>❄️ Клікни по чортику на місяці, щоб кинути сніжку!</span>
+    <span>❄️ Кидай сніжки в чортика та лови вареники!</span>
     <span class="score-pill" id="hitCounter">Влучань: 0</span>
+    <span class="varenyk-pill" id="varenykCounter">🥟 Вареників: 0</span>
   </div>
 
   <!-- Місяць і чортик, що гойдається -->
@@ -742,8 +915,8 @@
         <input type="text" id="urlInput" value="chrome://newtab" spellcheck="false" />
       </div>
     </div>
-
-    <div class="chrome-viewport">
+    <div class="chrome-viewport" id="chromeViewport">
+      <div class="page-flip-sheet" id="pageFlipSheet"></div>
       <div class="chrome-logo-3d" id="pageHeading">Google Chrome 3D</div>
       <div class="center-search">
         <input type="text" placeholder="Пошук у зимовій мережі або введіть URL..." />
@@ -778,6 +951,14 @@
     const urlInput = document.getElementById('urlInput');
     const pageHeading = document.getElementById('pageHeading');
     const addTabBtn = document.getElementById('addTabBtn');
+    const pageFlipSheet = document.getElementById('pageFlipSheet');
+
+    function triggerPageFlipEffect() {
+      pageFlipSheet.classList.remove('turning');
+      void pageFlipSheet.offsetWidth; // Перезапуск CSS-анімації
+      pageFlipSheet.classList.add('turning');
+      playPageFlipSound();
+    }
 
     function activateTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -792,23 +973,31 @@
       const tab = e.target.closest('.tab');
 
       if (closeBtn && tab) {
+        if (tab.classList.contains('falling')) return;
         const isActive = tab.classList.contains('active');
-        tab.remove();
-        if (isActive) {
-          const remaining = document.querySelectorAll('.tab');
-          if (remaining.length > 0) activateTab(remaining[remaining.length - 1]);
-        }
+        playTabFallSound();
+        tab.classList.add('falling');
+
+        setTimeout(() => {
+          tab.remove();
+          if (isActive) {
+            const remaining = document.querySelectorAll('.tab:not(.falling)');
+            if (remaining.length > 0) activateTab(remaining[remaining.length - 1]);
+          }
+        }, 640);
         return;
       }
 
-      if (tab) activateTab(tab);
+      if (tab && !tab.classList.contains('falling')) {
+        activateTab(tab);
+      }
     });
 
     addTabBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const count = document.querySelectorAll('.tab').length + 1;
       const newTab = document.createElement('div');
-      newTab.className = 'tab';
+      newTab.className = 'tab flip-in';
       newTab.dataset.url = `chrome://winter-tab-${count}`;
       newTab.dataset.title = `Зимова вкладка #${count}`;
       newTab.innerHTML = `
@@ -819,7 +1008,9 @@
         <span class="tab-close">×</span>
       `;
       tabsContainer.appendChild(newTab);
+      tabsContainer.scrollTo({ left: tabsContainer.scrollWidth, behavior: 'smooth' });
       activateTab(newTab);
+      triggerPageFlipEffect();
     });
 
     document.querySelectorAll('.shortcut-card').forEach(card => {
@@ -930,11 +1121,80 @@
       } catch (e) {}
     }
 
+    function playVarenykCatchSound() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        const notes = [587.33, 880, 1174.66]; // D5 -> A5 -> D6 приємний дзвінкий акорд
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+          gain.gain.setValueAtTime(0.001, now + idx * 0.055);
+          gain.gain.linearRampToValueAtTime(0.14, now + idx * 0.055 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.32);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.055);
+          osc.stop(now + idx * 0.055 + 0.34);
+        });
+      } catch (e) {}
+    }
+
+    function playPageFlipSound() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(560, now + 0.22);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch (e) {}
+    }
+
+    function playTabFallSound() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(95, now + 0.38);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.42);
+      } catch (e) {}
+    }
+
     /* ============================
-       3. СНІГОПАД ТА КИДАННЯ СНІЖОК
+       3. СНІГОПАД, ЛІТАЮЧІ ВАРЕНИКИ ТА КИДАННЯ СНІЖОК
        ============================ */
     const canvas = document.getElementById('snowCanvas');
     const ctx = canvas.getContext('2d');
+    const varenykLayer = document.getElementById('varenykLayer');
+    const varenykCounterEl = document.getElementById('varenykCounter');
     const devilSwinger = document.getElementById('devilSwinger');
     const fallenDevil = document.getElementById('fallenDevil');
     const bleatBubble = document.getElementById('bleatBubble');
@@ -1043,9 +1303,125 @@
 
     // Клік по екрану (окрім інтерактивних елементів браузера) кидає сніжку
     document.addEventListener('click', (e) => {
-      if (e.target.closest('input, button, .tab, .shortcut-card')) return;
+      if (e.target.closest('input, button, .tab, .shortcut-card, .flying-varenyk')) return;
       throwSnowballAt(e.clientX, e.clientY);
     });
+
+    /* ============================
+       4. ЛІТАЮЧІ ВАРЕНИКИ (ЯК У ПАЦЮКА В "НОЧІ ПЕРЕД РІЗДВОМ")
+       ============================ */
+    let caughtVarenyky = 0;
+    const activeVarenyky = [];
+
+    function createVarenykSVG() {
+      return `
+        <svg viewBox="0 0 80 54" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="doughGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#fff8dc" />
+              <stop offset="55%" stop-color="#f7dfa4" />
+              <stop offset="100%" stop-color="#d9ab5b" />
+            </linearGradient>
+          </defs>
+          <!-- Тіло вареника (півмісяць) -->
+          <path d="M 10 26 C 14 48, 66 48, 70 26 C 58 14, 22 14, 10 26 Z"
+                fill="url(#doughGrad)" stroke="#b84dff" stroke-width="1.6" />
+          <!-- Защіпнутий косичкою край вареника -->
+          <path d="M 10 26 Q 16 14 23 22 Q 29 12 36 20 Q 42 11 49 20 Q 56 12 62 21 Q 67 16 70 26"
+                fill="none" stroke="#fff3c4" stroke-width="4" stroke-linecap="round" />
+          <path d="M 12 25 Q 17 16 23 22 Q 29 14 36 20 Q 42 13 49 20 Q 56 14 62 21 Q 67 17 69 25"
+                fill="none" stroke="#c9933b" stroke-width="1.4" stroke-linecap="round" />
+          <!-- Легкий блиск сметанки/масла -->
+          <ellipse cx="40" cy="31" rx="14" ry="4" fill="rgba(255,255,255,0.45)" />
+        </svg>
+      `;
+    }
+
+    function showCatchPopup(x, y) {
+      const popup = document.createElement('div');
+      popup.className = 'catch-floating-text';
+      popup.textContent = '+1 🥟 Смакота!';
+      popup.style.left = `${x - 35}px`;
+      popup.style.top = `${y - 20}px`;
+      document.body.appendChild(popup);
+      setTimeout(() => popup.remove(), 860);
+    }
+
+    function spawnVarenyk() {
+      if (activeVarenyky.length >= 6) return;
+
+      const el = document.createElement('div');
+      el.className = 'flying-varenyk';
+      el.title = 'Спіймати вареник!';
+      el.innerHTML = createVarenykSVG();
+
+      const fromLeft = Math.random() > 0.35;
+      const startX = fromLeft ? -70 : width + 70;
+      const startY = Math.random() * (height * 0.72) + 40;
+      const vx = fromLeft ? (Math.random() * 1.4 + 0.9) : -(Math.random() * 1.4 + 0.9);
+      const vy = Math.random() * 0.45 + 0.15;
+
+      const item = {
+        el,
+        x: startX,
+        y: startY,
+        vx,
+        vy,
+        phase: Math.random() * Math.PI * 2,
+        rot: Math.random() * 30 - 15,
+        rotSpeed: (Math.random() - 0.5) * 0.9,
+        caught: false
+      };
+
+      el.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (item.caught) return;
+        item.caught = true;
+        caughtVarenyky += 1;
+        varenykCounterEl.textContent = `🥟 Вареників: ${caughtVarenyky}`;
+        varenykCounterEl.classList.remove('bump');
+        void varenykCounterEl.offsetWidth;
+        varenykCounterEl.classList.add('bump');
+
+        playVarenykCatchSound();
+        createSnowSplash(e.clientX, e.clientY, 16);
+        showCatchPopup(e.clientX, e.clientY);
+
+        el.classList.add('caught');
+        setTimeout(() => {
+          el.remove();
+          const idx = activeVarenyky.indexOf(item);
+          if (idx !== -1) activeVarenyky.splice(idx, 1);
+        }, 460);
+      });
+
+      varenykLayer.appendChild(el);
+      activeVarenyky.push(item);
+    }
+
+    // Періодична поява вареників у небі разом зі снігом
+    setInterval(spawnVarenyk, 2400);
+    setTimeout(spawnVarenyk, 600);
+    setTimeout(spawnVarenyk, 1500);
+
+    function updateVarenyky() {
+      for (let i = activeVarenyky.length - 1; i >= 0; i--) {
+        const v = activeVarenyky[i];
+        if (v.caught) continue;
+
+        v.phase += 0.035;
+        v.x += v.vx;
+        v.y += v.vy + Math.sin(v.phase) * 0.65;
+        v.rot += v.rotSpeed;
+
+        v.el.style.transform = `translate3d(${v.x}px, ${v.y}px, 0) rotate(${v.rot}deg)`;
+
+        if (v.x < -110 || v.x > width + 110 || v.y > height + 80) {
+          v.el.remove();
+          activeVarenyky.splice(i, 1);
+        }
+      }
+    }
 
     function animate() {
       ctx.clearRect(0, 0, width, height);
@@ -1129,6 +1505,9 @@
         ctx.fillStyle = `rgba(255, 255, 255, ${p.life})`;
         ctx.fill();
       }
+
+      // 4. Оновлюємо політ вареників
+      updateVarenyky();
 
       requestAnimationFrame(animate);
     }
